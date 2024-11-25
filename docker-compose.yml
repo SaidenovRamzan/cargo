@@ -2,27 +2,27 @@ version: "3.9"
 
 services:
 
-  # loading_service:
-  #   build:
-  #     context: ./loading_service
-  #   container_name: loading_service
-  #   ports:
-  #     - "8000:8000"
-  #   environment:
-  #     - DATABASE_URL=postgresql://user:password@db/cargo_db
-  #   depends_on:
-  #     - db
+  loading_service:
+    build:
+      context: ./loading_service
+    container_name: loading_service
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@db/cargo_db
+    depends_on:
+      - db
 
-  # unloading_service:
-  #   build:
-  #     context: ./unloading_service
-  #   container_name: unloading_service
-  #   ports:
-  #     - "8001:8001"
-  #   environment:
-  #     - DATABASE_URL=postgresql://user:password@db/cargo_db
-  #   depends_on:
-  #     - db
+  unloading_service:
+    build:
+      context: ./unloading_service
+    container_name: unloading_service
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql://user:password@db/cargo_db
+    depends_on:
+      - db
 
   db:
     image: postgres:15

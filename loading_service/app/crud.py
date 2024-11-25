@@ -3,17 +3,40 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from datetime import datetime
 from io import BytesIO
+from fastapi import HTTPException
 
 from app.models import CargoItem, CargoStatus
 from app.schemas import CargoItem as CargoItemShema
+from app.utils import utils
+
+
+async def is_file_already_uploaded(file_name, db: AsyncSession):
+    """
+    Проверяет, был ли файл с таким названием уже загружен.
+    
+    :param file_name: str, название файла.
+    :param db: AsyncSession, объект сессии базы данных.
+    :return: bool, True если файл уже существует, иначе False.
+    """
+    query = select(CargoItem).where(CargoItem.file_expected == file_name)
+    result = await db.execute(query)
+    return result.scalar() is not None
 
 
 # Обработчик загрузки файла
 async def process_cargo_file(file, db: AsyncSession):
     file_name = file.filename
+    # if not utils.validate_file_name(file_name):
+    #     raise HTTPException(status_code=400, detail="Некорректное название файла или расширение.")
+    # if await is_file_already_uploaded(file_name, db):
+    #     raise HTTPException(detail="Файл с таким названием уже был загружен.", status_code=400)
+    
     contents = await file.read()
-    workbook = openpyxl.load_workbook(BytesIO(contents))
-    sheet = workbook.active
+    try:
+        workbook = openpyxl.load_workbook(BytesIO(contents))
+        sheet = workbook.active
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Ошибка чтения файла: убедитесь, что файл корректен.")
 
     # Пропускаем строку с заголовками
     for row in sheet.iter_rows(min_row=2, values_only=True):
@@ -31,7 +54,7 @@ async def process_cargo_file(file, db: AsyncSession):
                 "product_name": row[7] if row[7] else None,
                 "destination": row[8] if row[8] else None,
                 "status": CargoStatus.PENDING,
-                "file_name": file_name,
+                "file_expected": file_name,
             }
             # Создаем новый объект CargoItem и добавляем его в сессию
             cargo_item = CargoItem(**cargo_data)
@@ -62,7 +85,7 @@ async def get_all_cargo_items(db: AsyncSession):
             "product_name": item.product_name,
             "destination": item.destination,
             "status": item.status,
-            "file_name": item.file_name,
+            "file_name": item.file_expected,
         }
         cargo_items_list.append(cargo_item_dict)
     

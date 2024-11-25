@@ -11,11 +11,9 @@ loading_router = APIRouter()
 
 @loading_router.post("/upload-cargo-file/")
 async def upload_cargo_file(file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
-    try:
-        await process_cargo_file(file, db)  # Передаем асинхронную сессию
-        return JSONResponse(status_code=200, content={"message": "File processed successfully"})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"message": str(e)})
+    await process_cargo_file(file, db)  # Передаем асинхронную сессию
+    return JSONResponse(status_code=200, content={"message": "File processed successfully"})
+
 
 
 @loading_router.get("/cargo-items/", response_model=list)
