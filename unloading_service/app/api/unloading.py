@@ -33,8 +33,8 @@ async def update_cargo_status(file: UploadFile = File(...), db: AsyncSession = D
     try:
         # Чтение содержимого файла
         file_name = file.filename
-        if not utils.validate_file_name(file_name):
-            raise HTTPException(status_code=400, detail="Некорректное название файла или расширение.")
+        # if not utils.validate_file_name(file_name):
+        #     raise HTTPException(status_code=400, detail="Некорректное название файла или расширение.")
         
         contents = await file.read()
         cargo_data = parse_excel_file(contents)
@@ -108,8 +108,8 @@ async def update_cargo_status_arrived(file: UploadFile = File(...), db: AsyncSes
     try:
         # Чтение содержимого файла
         file_name = file.filename
-        if not utils.validate_file_name(file_name):
-            raise HTTPException(status_code=400, detail="Некорректное название файла или расширение.")
+        # if not utils.validate_file_name(file_name):
+        #     raise HTTPException(status_code=400, detail="Некорректное название файла или расширение.")
         
         contents = await file.read()
         cargo_data = parse_excel_cargo_file(contents)
@@ -118,16 +118,21 @@ async def update_cargo_status_arrived(file: UploadFile = File(...), db: AsyncSes
             tracking_number = item["tracking_number"]
             file_quantity = item["quantity"]
 
-            cargo_items = await get_cargo_by_tracking_number(tracking_number, db)
+            cargo_items = await get_cargo_by_tracking_number(tracking_number, db, status='Ожидается отправка')
             if cargo_items:
+                print(len(cargo_items), "len")
                 for cargo_item in cargo_items:
+                    print(cargo_item.quantity)
+                    print(cargo_item.tracking_number)
+                    print('='*100)
+
                     if cargo_item.quantity != file_quantity:
                         # Если количество не совпадает, создаем новый объект
                         new_cargo_item = CargoItem(
                             vehicle_number=cargo_item.vehicle_number,
                             shipment_date=cargo_item.shipment_date,
                             tracking_number=cargo_item.tracking_number,
-                            quantity=cargo_item.quantity - file_quantity,  # Обновляем количество
+                            quantity=file_quantity,  # Обновляем количество
                             weight=cargo_item.weight,
                             volume=cargo_item.volume,
                             product_name=cargo_item.product_name,
@@ -141,6 +146,7 @@ async def update_cargo_status_arrived(file: UploadFile = File(...), db: AsyncSes
                             updated_at=cargo_item.updated_at
                         )
                         db.add(new_cargo_item)  # Добавляем новый объект в базу данных
+                        cargo_item.quantity = cargo_item.quantity - file_quantity
                     else:
                         # Если количество совпадает, просто обновляем статус и файл
                         cargo_item.status = CargoStatus.ARRIVED
@@ -169,8 +175,8 @@ async def update_cargo_status_arrived(file: UploadFile = File(...), db: AsyncSes
     try:
         # Чтение содержимого файла
         file_name = file.filename
-        if not utils.validate_file_name(file_name):
-            raise HTTPException(status_code=400, detail="Некорректное название файла или расширение.")
+        # if not utils.validate_file_name(file_name):
+        #     raise HTTPException(status_code=400, detail="Некорректное название файла или расширение.")
         
         contents = await file.read()
         cargo_data = parse_excel_cargo_file(contents)
@@ -179,7 +185,7 @@ async def update_cargo_status_arrived(file: UploadFile = File(...), db: AsyncSes
             tracking_number = item["tracking_number"]
             file_quantity = item["quantity"]
 
-            cargo_items = await get_cargo_by_tracking_number(tracking_number, db)
+            cargo_items = await get_cargo_by_tracking_number(tracking_number, db, status='Приехал')
             if cargo_items:
                 for cargo_item in cargo_items:
                     if cargo_item.quantity != file_quantity:
@@ -188,7 +194,7 @@ async def update_cargo_status_arrived(file: UploadFile = File(...), db: AsyncSes
                             vehicle_number=cargo_item.vehicle_number,
                             shipment_date=cargo_item.shipment_date,
                             tracking_number=cargo_item.tracking_number,
-                            quantity=cargo_item.quantity - file_quantity,  # Обновляем количество
+                            quantity=file_quantity,  # Обновляем количество
                             weight=cargo_item.weight,
                             volume=cargo_item.volume,
                             product_name=cargo_item.product_name,
@@ -202,6 +208,7 @@ async def update_cargo_status_arrived(file: UploadFile = File(...), db: AsyncSes
                             updated_at=cargo_item.updated_at
                         )
                         db.add(new_cargo_item)  # Добавляем новый объект в базу данных
+                        cargo_item.quantity = cargo_item.quantity - file_quantity
                     else:
                         # Если количество совпадает, просто обновляем статус и файл
                         cargo_item.status = CargoStatus.SHIPPED
